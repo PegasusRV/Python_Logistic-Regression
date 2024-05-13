@@ -1,0 +1,138 @@
+# Split Data Vertically into features and Target Separately
+X = df2.iloc[:,0:13] #independent columns
+y = df2.iloc[:,-1] #target column i.e price range
+
+
+
+# Validate Data and Feature Engineering
+import numpy as np
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+
+y = np.round(df2['House_Price'])
+
+#Apply SelectKBest class to extract top 5 best features
+bestfeatures = SelectKBest(score_func=chi2)
+fit = bestfeatures.fit(X,y)
+dfscores = pd.DataFrame(fit.scores_)
+dfcolumns = pd.DataFrame(X.columns)
+# Concat two dataframes for better visualization
+featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+featureScores.columns = ['SPECS','SCORE'] #naming the dataframe columns
+featureScores
+
+
+
+
+from sklearn import model_selection
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Algorithm Libraries
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+import warnings
+warnings.filterwarnings('ignore')
+
+
+
+# Feature Selection
+print(featureScores.nlargest(8,'SCORE')) #print 5 best features
+
+
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size = 0.20)
+
+
+# Standardize features
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+
+# Train the Logistic Regression model
+from sklearn.linear_model import LogisticRegression
+LogR = LogisticRegression()
+LogR.fit(X_train, y_train)
+
+
+
+y_pred = LogR.predict(X_test)
+y_pred
+
+
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_curve, auc
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+
+
+from sklearn.tree import DecisionTreeRegressor
+DT_regr = DecisionTreeRegressor()
+DT_regr = LogisticRegression()
+DT_regr.fit(X_train, y_train)
+DT_ypred = DT_regr.predict(X_test)
+DTaccuracy = accuracy_score(y_test, y_pred)
+print("Accuracy: {:.2f}%".format(DTaccuracy * 100))
+
+
+
+
+# create a list of models and evaluate each model
+models = [
+        ('Logistic Regression', LogR),
+        ('Decision Tree', DT_regr)
+    ]
+
+
+
+print("Root Mean Square Error (RMSE) score\n")
+scoring = 'neg_mean_squared_error'
+for name, model in models:
+  kfold = model_selection.KFold(n_splits=10)
+  cv_results = model_selection.cross_val_score(model, X_train, y_train, cv=kfold, scoring=scoring)
+  sqrt_cv_results = [math.sqrt(abs(i)) for i in cv_results]
+  print("{}: {} ({})".format(name, np.mean(sqrt_cv_results), np.std(sqrt_cv_results)))
+  print('Result from each iteration of cross validation:', cv_results, '\n')
+
+
+
+
+
+print("R-squared Value\n")
+scoring = 'r2'
+for name, model in models:
+  kfold = model_selection.KFold(n_splits=10)
+  cv_results = model_selection.cross_val_score(model, X_train, y_train, cv=kfold, scoring=scoring)
+  print("{}: {} ({})".format(name, cv_results.mean(), cv_results.std()))
+  print('Result from each iteration of cross validation:', cv_results, '\n')
+
+
+
+
+# Model Testing
+import seaborn as sns
+model1 = LogR
+model1.fit(X_train, y_train)
+y_pred = model1.predict(X_test)
+
+rmse_score = np.sqrt(mean_squared_error(y_test, y_pred))
+rsquared_score = r2_score(y_test, y_pred)
+print("Logistic Reggresion")
+print('RMSE score:', rmse_score)
+print('R2 score:', rsquared_score)
+print("Training Accuracy:",model1.score(X_train,y_train)*100)
+print("Testing Accuracy:",model1.score(X_test,y_test)*100)
+print("Model Accuracy:",r2_score(y,model1.predict(X))*100)
+
+
+
+
+
+# Visualizing the differences between actual prices and predicted values
+import matplotlib.pyplot as plt
+plt.scatter(y_test, y_pred)
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Logistic Regression (Prices vs Predicted prices)")
+plt.show()
