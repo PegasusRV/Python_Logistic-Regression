@@ -1,3 +1,25 @@
+import pandas as pd
+
+df2 = pd.read_csv("Boston.csv")
+df2.head()
+
+
+
+df2.rename(columns = {'MEDV':'House_Price'}, inplace = True)
+df2.head()
+
+
+
+df2.isnull().sum()
+
+
+
+corr = df2.corr()
+corr.shape
+
+
+
+
 # Split Data Vertically into features and Target Separately
 X = df2.iloc[:,0:13] #independent columns
 y = df2.iloc[:,-1] #target column i.e price range
